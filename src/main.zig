@@ -7,6 +7,7 @@ const template = @import("template.zig");
 const metrics = @import("metrics.zig");
 const builtin = @import("builtin");
 const kwatcher = @import("kwatcher");
+const auth = @import("auth.zig");
 
 const services = @import("services.zig");
 
@@ -31,7 +32,9 @@ const App = struct {
                 .get("/openapi.json", tk.swagger.json(.{ .info = .{ .title = "Kauth" } })),
                 .get("/swagger-ui", tk.swagger.ui(.{ .url = "openapi.json" })),
                 template.templates(&.{
-                    .group("/api/", &.{.router(api.push)}),
+                    auth.auth(&.{
+                        .group("/api/", &.{.router(api.push)}),
+                    }),
                     .get("/*", notFound),
                 }),
             }),
@@ -78,6 +81,7 @@ pub fn main() !void {
         const root = tk.Injector.init(&.{
             &alloc,
             client,
+            conf.value,
             &tk.ServerOptions{
                 .listen = .{
                     .hostname = conf.value.pushway.hostname,
