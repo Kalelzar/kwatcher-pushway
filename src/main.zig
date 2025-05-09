@@ -84,6 +84,7 @@ pub fn main() !void {
             &alloc,
             client,
             conf.value,
+            &base_config,
             &tk.ServerOptions{
                 .listen = .{
                     .hostname = conf.value.pushway.hostname,
