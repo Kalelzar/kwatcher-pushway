@@ -14,17 +14,94 @@ pub fn @"POST /v1/push/:exchange/:queue/:route"(
     exchange: []const u8,
     queue: []const u8,
     route: []const u8,
-    req: kwatcher.schema.Heartbeat.V1(std.json.Value),
+    req: std.json.Value,
 ) !template.Template {
-    var instr = metrics.instrumentAllocator(res.arena);
-    const alloc = instr.allocator();
-    const response = try push_service.push(
-        alloc,
+    return doPush(
+        res,
+        data,
+        push_service,
         exchange,
         queue,
         route,
         req,
     );
+}
+
+pub fn @"POST /v1/heartbeat"(
+    res: *tk.Response,
+    data: *zmpl.Data,
+    push_service: *PushService,
+    req: kwatcher.schema.Heartbeat.V1(std.json.Value),
+) !template.Template {
+    return doPush(
+        res,
+        data,
+        push_service,
+        "amq.direct",
+        "heartbeat",
+        "heartbeat",
+        req,
+    );
+}
+
+const ManagedRequest = struct {
+    event: []const u8,
+};
+
+pub fn @"POST /v1/heartbeat/managed?"(
+    res: *tk.Response,
+    data: *zmpl.Data,
+    push_service: *PushService,
+    params: ManagedRequest,
+    req: std.json.Value,
+) !template.Template {
+    const heartbeat: kwatcher.schema.Heartbeat.V1(std.json.Value) = .{
+        .properties = req,
+        .event = params.event,
+        .timestamp = std.time.microTimestamp(),
+        .user = .{ //FIXME: This is hardcoded and badge and terrible. Update when klib gets cross-platform APIs for this.
+            .hostname = "localhost",
+            .username = "kalelzar",
+            .id = "kalelzar@localhost",
+        },
+        .client = .{ //TODO: Inject a ClientInfo instead.
+            .version = "0.1.0",
+            .name = "pushway",
+        },
+    };
+
+    return doPush(
+        res,
+        data,
+        push_service,
+        "amq.direct",
+        "heartbeat",
+        "heartbeat",
+        heartbeat,
+    );
+}
+
+fn doPush(
+    res: *tk.Response,
+    data: *zmpl.Data,
+    push_service: *PushService,
+    exchange: []const u8,
+    queue: []const u8,
+    route: []const u8,
+    req: anytype,
+) !template.Template {
+    var instr = metrics.instrumentAllocator(res.arena);
+    const alloc = instr.allocator();
+    const body = try jsonLeaky(alloc, req);
+    defer alloc.free(body);
+
+    const response = try push_service.push(
+        exchange,
+        queue,
+        route,
+        body,
+    );
+
     const root = try data.object();
     switch (response) {
         .result => |_| {
@@ -38,4 +115,8 @@ pub fn @"POST /v1/push/:exchange/:queue/:route"(
         },
     }
     return template.Template.init("not_found");
+}
+
+fn jsonLeaky(allocator: std.mem.Allocator, req: anytype) ![]const u8 {
+    return std.json.stringifyAlloc(allocator, req, .{});
 }

@@ -13,20 +13,28 @@ pub fn init(client: kwatcher.Client) PushService {
 
 pub fn push(
     self: *const PushService,
-    allocator: std.mem.Allocator,
     exchange: []const u8,
     queue: []const u8,
     route: []const u8,
-    req: kwatcher.schema.Heartbeat.V1(std.json.Value),
+    req: []const u8,
 ) !ar.ApiResult(struct {}) {
     try self.client.openChannel(exchange, queue, route);
     const channel = try self.client.getChannel(queue);
+    try kwatcher.metrics.publishQueue(queue, exchange);
 
-    channel.publish(.{ .body = try std.json.stringifyAlloc(allocator, req, .{}), .options = .{
-        .exchange = exchange,
-        .queue = queue,
-        .routing_key = route,
-    } }) catch return .{ .err = .{ .code = .internal_server_error, .message = "Internal error" } };
+    channel.publish(.{
+        .body = req,
+        .options = .{
+            .exchange = exchange,
+            .queue = queue,
+            .routing_key = route,
+        },
+    }) catch {
+        try kwatcher.metrics.publishError(queue, exchange);
+        return .{ .err = .{ .code = .internal_server_error, .message = "Internal error" } };
+    };
+
+    try kwatcher.metrics.publish(queue, exchange);
 
     return .{
         .result = .{},

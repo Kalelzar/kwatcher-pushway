@@ -29,7 +29,7 @@ const App = struct {
             metrics.track(&.{
                 .get("/", tk.static.file("static/index.html")),
                 .get("/metrics", metrics.route()),
-                .get("/openapi.json", tk.swagger.json(.{ .info = .{ .title = "Kauth" } })),
+                .get("/openapi.json", tk.swagger.json(.{ .info = .{ .title = "KWatcher Pushway" } })),
                 .get("/swagger-ui", tk.swagger.ui(.{ .url = "openapi.json" })),
                 template.templates(&.{
                     auth.auth(&.{
@@ -51,6 +51,8 @@ pub fn main() !void {
         var instr_allocator = metrics.instrumentAllocator(allocator);
         const alloc = instr_allocator.allocator();
         try metrics.initialize(alloc, .{});
+        defer metrics.deinitialize();
+        try kwatcher.metrics.initialize(alloc, "pushway", "0.1.0", .{});
         defer metrics.deinitialize();
 
         var instr_page_allocator = metrics.instrumentAllocator(std.heap.page_allocator);
