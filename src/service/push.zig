@@ -1,28 +1,29 @@
 const std = @import("std");
 
 const kwatcher = @import("kwatcher");
+const ClientPool = @import("../pool.zig");
 
 const PushService = @This();
 const ar = @import("../api_result.zig");
 
-client: kwatcher.Client,
+pool: ClientPool,
 alloc: std.mem.Allocator,
 conf: kwatcher.config.BaseConfig,
 
 pub fn init(
-    client: kwatcher.Client,
+    pool: ClientPool,
     alloc: std.mem.Allocator,
     conf: kwatcher.config.BaseConfig,
 ) PushService {
     return .{
-        .client = client,
+        .pool = pool,
         .alloc = alloc,
         .conf = conf,
     };
 }
 
 pub fn push(
-    self: *const PushService,
+    self: *PushService,
     exchange: []const u8,
     queue: []const u8,
     route: []const u8,
@@ -50,11 +51,13 @@ pub fn push(
     };
 }
 
-fn publishWithRetries(self: *const PushService, msg: kwatcher.schema.SendMessage, max_retries: i4) !void {
+fn publishWithRetries(self: *PushService, msg: kwatcher.schema.SendMessage, max_retries: i4) !void {
     var retries: u4 = 0;
     var backoff: u64 = 1;
+    const client = try self.pool.lease();
+    defer self.pool.unlease(client);
     while (true) {
-        run(self.client, msg) catch |e| {
+        run(client.client, msg) catch |e| {
             if (e == error.AuthFailure) {
                 return e; // We really can't do anything if the credentials are wrong.
             }
@@ -68,8 +71,8 @@ fn publishWithRetries(self: *const PushService, msg: kwatcher.schema.SendMessage
                 .{ e, retries, backoff },
             );
             std.time.sleep(backoff * std.time.ns_per_s);
-            self.client.deinit();
-            self.client.connect(self.alloc, self.conf, "pushway") catch {};
+            client.client.deinit();
+            client.client.connect(self.alloc, self.conf, "pushway") catch {};
             backoff *= 2;
             retries += 1;
             continue;

@@ -13,6 +13,8 @@ const services = @import("services.zig");
 
 const api = @import("api.zig");
 
+const ClientPool = @import("pool.zig");
+
 fn notFound(context: *tk.Context, data: *zmpl.Data) !template.Template {
     const object = try data.object();
     context.res.status = 404;
@@ -72,17 +74,16 @@ pub fn main() !void {
             conf.value,
         );
 
-        var kwatch_client = try kwatcher.AmqpClient.init(
+        var pool = try ClientPool.init(
             instr_allocator.allocator(),
             base_config,
-            "pushway",
+            8,
         );
-        const client = kwatch_client.client();
-        defer client.deinit();
+        defer pool.deinit();
 
         const root = tk.Injector.init(&.{
             &alloc,
-            client,
+            &pool,
             conf.value,
             &base_config,
             &tk.ServerOptions{
