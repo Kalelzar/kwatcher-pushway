@@ -34,7 +34,7 @@ pub fn init(allocator: std.mem.Allocator, conf: kwatcher.config.BaseConfig, max:
 
 pub fn deinit(self: *ClientPool) void {
     for (self.pool.items) |*item| {
-        item.client.client().deinit();
+        item.client.deinit();
     }
     self.pool.deinit(self.allocator);
 }
@@ -63,6 +63,7 @@ pub fn getUnsynchronized(self: *ClientPool) !PooledClient {
     const ptr = try self.allocator.create(kwatcher.AmqpClient);
     errdefer self.allocator.destroy(ptr);
     ptr.* = try kwatcher.AmqpClient.init(self.allocator, self.conf, "pushway");
+    try kwatcher.AmqpClient.connect(ptr);
     const index = self.pool.items.len;
     self.pool.appendAssumeCapacity(.{
         .client = ptr,

@@ -7,12 +7,11 @@ const kwatcher = @import("kwatcher");
 const PushService = @import("../service/push.zig");
 const template = @import("../template.zig");
 
-pub fn @"POST /v1/push/:exchange/:queue/:route"(
+pub fn @"POST /v1/push/:exchange/:route"(
     res: *tk.Response,
     data: *zmpl.Data,
     push_service: *PushService,
     exchange: []const u8,
-    queue: []const u8,
     route: []const u8,
     req: std.json.Value,
 ) !template.Template {
@@ -21,7 +20,6 @@ pub fn @"POST /v1/push/:exchange/:queue/:route"(
         data,
         push_service,
         exchange,
-        queue,
         route,
         req,
     );
@@ -38,7 +36,6 @@ pub fn @"POST /v1/heartbeat"(
         data,
         push_service,
         "amq.direct",
-        "heartbeat",
         "heartbeat",
         req,
     );
@@ -76,7 +73,6 @@ pub fn @"POST /v1/heartbeat/managed?"(
         push_service,
         "amq.direct",
         "heartbeat",
-        "heartbeat",
         heartbeat,
     );
 }
@@ -86,7 +82,6 @@ fn doPush(
     data: *zmpl.Data,
     push_service: *PushService,
     exchange: []const u8,
-    queue: []const u8,
     route: []const u8,
     req: anytype,
 ) !template.Template {
@@ -97,7 +92,6 @@ fn doPush(
 
     const response = try push_service.push(
         exchange,
-        queue,
         route,
         body,
     );

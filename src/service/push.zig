@@ -25,7 +25,6 @@ pub fn init(
 pub fn push(
     self: *PushService,
     exchange: []const u8,
-    queue: []const u8,
     route: []const u8,
     req: []const u8,
 ) !ar.ApiResult(struct {}) {
@@ -34,17 +33,16 @@ pub fn push(
             .body = req,
             .options = .{
                 .exchange = exchange,
-                .queue = queue,
                 .routing_key = route,
             },
         },
         5,
     ) catch {
-        try kwatcher.metrics.publishError(queue, exchange);
+        try kwatcher.metrics.publishError(route, exchange);
         return .{ .err = .{ .code = .internal_server_error, .message = "Internal error" } };
     };
 
-    try kwatcher.metrics.publish(queue, exchange);
+    try kwatcher.metrics.publish(route, exchange);
 
     return .{
         .result = .{},
@@ -53,37 +51,43 @@ pub fn push(
 
 fn publishWithRetries(self: *PushService, msg: kwatcher.schema.SendMessage, max_retries: i4) !void {
     var retries: u4 = 0;
-    var backoff: u64 = 1;
+    var backoff: u64 = 5;
     const client = try self.pool.lease();
     defer self.pool.unlease(client);
-    while (true) {
+    main_loop: while (true) {
         run(client.client, msg) catch |e| {
             if (e == error.AuthFailure) {
                 return e; // We really can't do anything if the credentials are wrong.
             }
 
-            if (retries > max_retries) {
-                std.log.err("Failed to reconnect after {} retries. Aborting...", .{retries});
-                return error.ReconnectionFailure;
+            var last_error: anyerror = e;
+
+            while (retries <= max_retries) {
+                std.log.err(
+                    "Got disconnected with: {}. Retrying ({}) after {} seconds.",
+                    .{ last_error, retries, backoff },
+                );
+                std.time.sleep(backoff * std.time.ns_per_s);
+                backoff *= 2;
+                retries += 1;
+                client.client.disconnect() catch {};
+                client.client.connect() catch |ce| {
+                    last_error = ce;
+                    continue;
+                };
+                backoff = 5;
+                retries = 0;
+                continue :main_loop;
             }
-            std.log.err(
-                "Got disconnected with: {}. Retrying ({}) after {} seconds.",
-                .{ e, retries, backoff },
-            );
-            std.time.sleep(backoff * std.time.ns_per_s);
-            client.client.deinit();
-            client.client.connect(self.alloc, self.conf, "pushway") catch {};
-            backoff *= 2;
-            retries += 1;
-            continue;
+
+            std.log.err("Failed to reconnect after {} retries. Aborting...", .{retries});
+            return error.ReconnectionFailure;
         };
         break;
     }
 }
 
 fn run(client: kwatcher.Client, msg: kwatcher.schema.SendMessage) !void {
-    try client.openChannel(msg.options.exchange, msg.options.queue, msg.options.routing_key);
-    const channel = try client.getChannel(msg.options.queue);
-    try kwatcher.metrics.publishQueue(msg.options.queue, msg.options.exchange);
-    try channel.publish(msg);
+    try kwatcher.metrics.publishQueue(msg.options.routing_key, msg.options.exchange);
+    try client.publish(msg, .{});
 }
