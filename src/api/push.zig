@@ -56,11 +56,7 @@ pub fn @"POST /v1/heartbeat/managed?"(
         .properties = req,
         .event = params.event,
         .timestamp = std.time.microTimestamp(),
-        .user = .{ //FIXME: This is hardcoded and badge and terrible. Update when klib gets cross-platform APIs for this.
-            .hostname = "localhost",
-            .username = "kalelzar",
-            .id = "kalelzar@localhost",
-        },
+        .user = (try kwatcher.schema.UserInfo.init(res.arena, null)).v1(),
         .client = .{ //TODO: Inject a ClientInfo instead.
             .version = "0.1.0",
             .name = "pushway",

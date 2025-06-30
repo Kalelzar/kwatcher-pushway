@@ -74,16 +74,16 @@
             .hash = "zmpl-0.0.1-SYFGBuZoAwAMuvHNkO_1BbutpWhg7CdSgYd8t4OaaZeR",
         },
         .klib = .{
-            .url = "git+https://github.com/Kalelzar/klib.git#0f919cdb8abdda80e8b598a3d7c0377e1fa2f2ba",
-            .hash = "klib-0.0.0-vum4ZGViAAD9WjA7o2AHm2w-eavtDAyPyJW4iKyU5vjF",
+            .url = "git+https://github.com/Kalelzar/klib.git#ef6a00701c4cd1e54d72a5f95f2c4e2b43bd17fb",
+            .hash = "klib-0.0.0-vum4ZBFwAAAdG1htV2o7HBSxjJCKytIxpSgBGVKSZBkK",
         },
         .uuid = .{
             .url = "git+https://github.com/r4gus/uuid-zig.git#17cdf2cf5adb9e85892b04e269d408db3578cff2",
             .hash = "12207920ff3fce69398afc959b252b8cd72ab55a6dbb251d71fa046a43d9a85bffe6",
         },
         .kwatcher = .{
-            .url = "git+https://github.com/Kalelzar/kwatcher.git#c734611b67f695a8969fcfff550eda6118cd0d86",
-            .hash = "kwatcher-0.1.0-VYVPxvmSAQAs2J9hQGLc6hevVTzOpLuF1SZSJ_OPWoeP",
+            .url = "git+https://github.com/Kalelzar/kwatcher.git#90f86c325ae2de2e54b988be114a38dae823d0b8",
+            .hash = "kwatcher-0.1.0-VYVPxgjpAgC_EbxIbzBGoFST1pQoqFJjqqKWkMhxoGrN",
         },
     },
 
