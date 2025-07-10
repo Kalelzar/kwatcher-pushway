@@ -82,8 +82,8 @@
             .hash = "12207920ff3fce69398afc959b252b8cd72ab55a6dbb251d71fa046a43d9a85bffe6",
         },
         .kwatcher = .{
-            .url = "git+https://github.com/Kalelzar/kwatcher.git#90f86c325ae2de2e54b988be114a38dae823d0b8",
-            .hash = "kwatcher-0.1.0-VYVPxgjpAgC_EbxIbzBGoFST1pQoqFJjqqKWkMhxoGrN",
+            .url = "git+https://github.com/Kalelzar/kwatcher#e11c7f0533a9675b26f6f140ce39be0a637aadfd",
+            .hash = "kwatcher-0.1.0-VYVPxjmiAwCtygOH1r7i4G-9TyhwWy3-WdDajHaPWcg3",
         },
     },
 
