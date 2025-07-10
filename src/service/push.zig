@@ -34,6 +34,7 @@ pub fn push(
             .options = .{
                 .exchange = exchange,
                 .routing_key = route,
+                .norecord = true,
             },
         },
         5,
